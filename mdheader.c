@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <endian.h>
 
 #define HEADER_SIZE 0x100
 #define HEADER_OFFSET 0x100
@@ -13,13 +15,15 @@ struct mdheader {
     char type[2];
     char product[14];
     char controls[16];
-    char rom[8];
-    char ram[8];
+    uint32_t rom_start;
+    uint32_t rom_end;
+    uint32_t ram_start;
+    uint32_t ram_end;
     char external[12];
     char modem[12];
     char memo[40];
     char regions[16];
-};
+} __attribute ((packed));
 
 char *iosupport[] =
 {
@@ -119,6 +123,10 @@ int main(int argc, char *argv[])
             continue;
         printf("%s\n", io2string(mdh->controls[i]));
     }
+    printf("ROM Start:\n0x%x\n", be32toh(mdh->rom_start));
+    printf("ROM End:\n0x%x\n",  be32toh(mdh->rom_end));
+    printf("RAM Start:\n0x%x\n", be32toh(mdh->ram_start));
+    printf("RAM End:\n0x%x\n",  be32toh(mdh->ram_end));
     printf("Modem:\n%s\n", term(mdh->modem, str, 12));
     printf("Memo:\n%s\n", term(mdh->memo, str, 40));
     printf("Regions:\n%s\n", term(mdh->regions, str, 16));
