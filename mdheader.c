@@ -40,6 +40,14 @@ char *iosupport[] =
     "Unknown",
 };
 
+char *regions[] =
+{
+    "Japan",
+    "USA",
+    "Europe",
+    "Unknown Region",
+};
+
 char *io2string(char io)
 {
     switch (io) {
@@ -65,6 +73,20 @@ char *io2string(char io)
             return iosupport[9];
         default:
             return iosupport[10];
+    }
+}
+
+char *region2string(char region)
+{
+    switch (region) {
+        case 'J' :
+            return regions[0];
+        case 'U' :
+            return regions[1];
+        case 'E' :
+            return regions[2];
+        default:
+            return regions[3];
     }
 }
 
@@ -109,6 +131,7 @@ int main(int argc, char *argv[])
 
     mdh = (struct mdheader *)buff;
 
+    printf("************************************************\n");
     printf("Common title:\n%s\n", term(mdh->title_com, str, 16));
     printf("Copyright:\n%s\n", term(mdh->copyright, str, 8));
     printf("Date:\n%s\n", term(mdh->date, str, 8));
@@ -129,7 +152,14 @@ int main(int argc, char *argv[])
     printf("RAM End:\n0x%x\n",  be32toh(mdh->ram_end));
     printf("Modem:\n%s\n", term(mdh->modem, str, 12));
     printf("Memo:\n%s\n", term(mdh->memo, str, 40));
-    printf("Regions:\n%s\n", term(mdh->regions, str, 16));
+    //printf("Regions:\n%s\n", term(mdh->regions, str, 16));
+    printf("Regions:\n");
+    for (i = 0; i < 16; i++) {
+        if(mdh->controls[i] == ' ')
+            continue;
+        printf("%s\n", region2string(mdh->regions[i]));
+    }
+    printf("************************************************\n");
 
     fclose(rom);
     return 0;
