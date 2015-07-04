@@ -51,6 +51,7 @@ char *regions[] =
 
 char *io2string(char io)
 {
+    static char unk[] = "Unknown Control 'X'";
     switch (io) {
         case '0':
             return iosupport[0];
@@ -73,7 +74,8 @@ char *io2string(char io)
         case 'C':
             return iosupport[9];
         default:
-            return iosupport[10];
+            unk[17] = io;
+            return unk;
     }
 }
 
@@ -113,88 +115,103 @@ int main(int argc, char *argv[])
     char str[49];
     int inb = 48, outb=128;
     char *inm, *outm, *in_orig, *out_orig;
-    int i;
+    int i, cur_arg;
     iconv_t id;
 
-    if (argc != 2)
+    if (argc < 2) {
+        printf("Usage: mdheader <rom files>\n");
         return 1;
+    }
 
     id = iconv_open("UTF-8", "SHIFT_JIS");
     if (id == (iconv_t)(-1)) {
         printf("bad iconv_open\n");
         return 1;
     }
-
-    rom = fopen(argv[1], "r");
-    if (!rom)
-        return 1;
-
-    ret = fseek(rom, HEADER_OFFSET, SEEK_SET);
-    if (ret != 0) {
-        fclose(rom);
-        return 1;
-    }
-
-    ret = fread(buff, HEADER_SIZE, 1, rom);
-    if (ret != 1) {
-        fclose(rom);
-        return 1;
-    }
-
-    mdh = (struct mdheader *)buff;
     inm = in_orig = malloc(48);
-    memcpy(inm, mdh->title_dom, 48);
     outm = out_orig = malloc(128);
     if (!inm || !outm)
         return 1;
 
     printf("************************************************\n");
-    printf("Common title:\n%s\n", term(mdh->title_com, str, 16));
-    printf("Copyright:\n%s\n", term(mdh->copyright, str, 8));
-    printf("Date:\n%s\n", term(mdh->date, str, 8));
+    for (cur_arg = 1; cur_arg < argc; cur_arg++) {
+        rom = fopen(argv[cur_arg], "r");
+        if (!rom) {
+            printf("Couldn't open %s\n", argv[cur_arg]);
+            goto err;
+        }
 
-    printf("Game name (domestic):\n");
-    ret = iconv(id, &inm, &inb, &outm, &outb);
-    if (ret >= 0)
-        printf("%s\n", out_orig);
-    else
-        printf("conversion failure\n");
-    printf("Game name (overseas):\n");
-    inm = in_orig;
-    outm = out_orig;
-    inb = 48;
-    outb = 128;
-    ret = iconv(id, &inm, &inb, &outm, &outb);
-    if (ret >= 0)
-        printf("%s\n", out_orig);
-    else
-        printf("conversion failure\n");
+        ret = fseek(rom, HEADER_OFFSET, SEEK_SET);
+        if (ret != 0) {
+            printf("Couldn't seek in %s, file too small?", argv[cur_arg]);
+            fclose(rom);
+            goto err;
+        }
 
-    printf("Type:\n%s\n", term(mdh->type, str, 2));
-    printf("Product:\n%s\n", term(mdh->product, str, 14));
-    printf("Controls:\n");
-    for (i = 0; i < 16; i++) {
-        if(mdh->controls[i] == ' ')
-            continue;
-        printf("%s\n", io2string(mdh->controls[i]));
+        ret = fread(buff, HEADER_SIZE, 1, rom);
+        if (ret != 1) {
+            printf("Couldn't read header in %s, file too short?", argv[cur_arg]);
+            fclose(rom);
+            goto err;
+        }
+
+        mdh = (struct mdheader *)buff;
+
+        printf("Common title:\n%s\n", term(mdh->title_com, str, 16));
+        printf("Copyright:\n%s\n", term(mdh->copyright, str, 8));
+        printf("Date:\n%s\n", term(mdh->date, str, 8));
+
+        printf("Game name (domestic):\n");
+        memcpy(in_orig, mdh->title_dom, 48);
+        ret = iconv(id, &inm, &inb, &outm, &outb);
+        if (ret >= 0)
+            printf("%s\n", out_orig);
+        else
+            printf("conversion failure\n");
+        inm = in_orig;
+        outm = out_orig;
+        inb = 48;
+        outb = 128;
+
+        printf("Game name (overseas):\n");
+        memcpy(in_orig, mdh->title_over, 48);
+        ret = iconv(id, &inm, &inb, &outm, &outb);
+        if (ret >= 0)
+            printf("%s\n", out_orig);
+        else
+            printf("conversion failure\n");
+        inm = in_orig;
+        outm = out_orig;
+        inb = 48;
+        outb = 128;
+
+        printf("Type:\n%s\n", term(mdh->type, str, 2));
+        printf("Product:\n%s\n", term(mdh->product, str, 14));
+        printf("Controls:\n");
+        for (i = 0; i < 16; i++) {
+            if(mdh->controls[i] == ' ')
+                continue;
+            printf("%s\n", io2string(mdh->controls[i]));
+        }
+
+        printf("ROM Start:\n0x%x\n", be32toh(mdh->rom_start));
+        printf("ROM End:\n0x%x\n",  be32toh(mdh->rom_end));
+        printf("RAM Start:\n0x%x\n", be32toh(mdh->ram_start));
+        printf("RAM End:\n0x%x\n",  be32toh(mdh->ram_end));
+
+        printf("Modem:\n%s\n", term(mdh->modem, str, 12));
+        printf("Memo:\n%s\n", term(mdh->memo, str, 40));
+        printf("Regions:\n");
+        for (i = 0; i < 16; i++) {
+            if(mdh->regions[i] == ' ')
+                continue;
+            printf("%s\n", region2string(mdh->regions[i]));
+        }
+
+err:
+        printf("************************************************\n");
+        fclose(rom);
     }
-
-    printf("ROM Start:\n0x%x\n", be32toh(mdh->rom_start));
-    printf("ROM End:\n0x%x\n",  be32toh(mdh->rom_end));
-    printf("RAM Start:\n0x%x\n", be32toh(mdh->ram_start));
-    printf("RAM End:\n0x%x\n",  be32toh(mdh->ram_end));
-
-    printf("Modem:\n%s\n", term(mdh->modem, str, 12));
-    printf("Memo:\n%s\n", term(mdh->memo, str, 40));
-    printf("Regions:\n");
-    for (i = 0; i < 16; i++) {
-        if(mdh->regions[i] == ' ')
-            continue;
-        printf("%s\n", region2string(mdh->regions[i]));
-    }
-    printf("************************************************\n");
-
-    fclose(rom);
     iconv_close(id);
     return 0;
 }
