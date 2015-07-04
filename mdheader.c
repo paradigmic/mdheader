@@ -107,6 +107,20 @@ char *term(char *in, char *out, int len)
     return out;
 }
 
+uint16_t checksum(FILE *rom)
+{
+    uint32_t count, i;
+    int16_t all[2048], csum = 0;
+    fseek(rom, 0x200, SEEK_SET);
+    do {
+        count = fread(&all, 2, 2048, rom);
+        for (i = 0; i < count; i++) {
+            csum += be16toh(all[i]);
+        }
+    } while(count != 0);
+    return csum;
+}
+
 int main(int argc, char *argv[])
 {
     FILE *rom = NULL;
@@ -189,6 +203,7 @@ int main(int argc, char *argv[])
         printf("Type:\n%s\n", term(mdh->type, str, 2));
         printf("Product:\n%s\n", term(mdh->product, str, 12));
         printf("Checksum:\n0x%x\n", be16toh(mdh->checksum));
+        printf("Computed checksum:\n0x%x\n", checksum(rom));
         printf("Controls:\n");
         for (i = 0; i < 16; i++) {
             if(mdh->controls[i] == ' ')
