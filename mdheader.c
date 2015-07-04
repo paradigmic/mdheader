@@ -15,7 +15,8 @@ struct mdheader {
     char title_dom[48];
     char title_over[48];
     char type[2];
-    char product[14];
+    char product[12];
+    uint16_t checksum;
     char controls[16];
     uint32_t rom_start;
     uint32_t rom_end;
@@ -186,7 +187,8 @@ int main(int argc, char *argv[])
         outb = 128;
 
         printf("Type:\n%s\n", term(mdh->type, str, 2));
-        printf("Product:\n%s\n", term(mdh->product, str, 14));
+        printf("Product:\n%s\n", term(mdh->product, str, 12));
+        printf("Checksum:\n0x%x\n", be16toh(mdh->checksum));
         printf("Controls:\n");
         for (i = 0; i < 16; i++) {
             if(mdh->controls[i] == ' ')
