@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     char buff[HEADER_SIZE];
     struct mdheader *mdh;
     char str[49];
-    int inb = 48, outb=128;
+    size_t inb = 48, outb=128;
     char *inm, *outm, *in_orig, *out_orig;
     int i, cur_arg;
     iconv_t id;
