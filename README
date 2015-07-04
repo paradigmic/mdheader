@@ -1,0 +1,22 @@
+ROM header decoder for Sega Genesis/Mega Drive
+
+Usage:
+mdh <rom names>
+
+Outputs the following fields:
+Common title
+Copyright
+Date
+Game name (domestic)
+Game name (overseas)
+Type
+Product number
+Checksum
+Controls
+ROM start address
+ROM end address
+RAM start address
+RAM end address
+Modem string
+Memo
+Regions
